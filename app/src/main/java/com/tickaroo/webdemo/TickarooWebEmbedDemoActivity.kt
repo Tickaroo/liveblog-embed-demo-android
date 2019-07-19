@@ -55,7 +55,7 @@ class TickarooWebEmbedDemoActivity : Activity() {
   override fun onResume() {
     super.onResume()
     if (webView.url.isNullOrEmpty()) {
-      webView.loadUrl("http://builds.tickaroo.net/feedtest/embedjs-tik3-nordbayern-video-inline.html")
+      webView.loadUrl(getString(R.string.url))
     } else {
       webView.loadUrl("javascript:window.location.reload( true )")
     }
