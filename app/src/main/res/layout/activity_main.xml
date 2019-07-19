@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+
+  <WebView
+      android:id="@+id/webView"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:visibility="invisible"
+      />
+
+  <androidx.core.widget.ContentLoadingProgressBar
+      android:id="@+id/loadingView"
+      android:layout_width="40dp"
+      android:layout_height="40dp"
+      android:layout_gravity="center"
+      android:indeterminate="true"
+      android:theme="@style/ThemeOverlay.AppCompat.Light"
+      style="?android:attr/progressBarStyle"
+      />
+
+  <FrameLayout
+      android:id="@+id/customViewContainer"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:visibility="invisible"
+      />
+
+  <LinearLayout
+      android:id="@+id/refresh_container"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:background="#FFFFFF"
+      android:gravity="center"
+      android:orientation="vertical"
+      android:paddingBottom="50dp"
+      android:visibility="gone"
+      tools:visibility="visible"
+      >
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:src="@drawable/refresh"
+        />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="20dp"
+        android:layout_marginStart="20dp"
+        android:gravity="center"
+        android:text="Es gab einen Fehler beim Laden der Daten.\nBesteht eine Verbindung zum Internet?"
+        android:textSize="16sp"
+        />
+
+  </LinearLayout>
+
+</FrameLayout>
