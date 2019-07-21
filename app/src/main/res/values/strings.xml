@@ -1,5 +1,5 @@
 <resources>
   <string name="app_name">Tickaroo Web Embed</string>
 
-  <string name="url" translatable="false">https://android.m.mainpost.de/sport/rhoen-grabfeld/Fussball-Regionalliga-Bayern-Liveblog-TSV-Aubstadt-ein-Dorf-steht-Kopf;art797,10276341</string>
+  <string name="url" translatable="false">http://builds.tickaroo.net/feedtest/embedjs-tik3-mainpost-inline.html</string>
 </resources>
