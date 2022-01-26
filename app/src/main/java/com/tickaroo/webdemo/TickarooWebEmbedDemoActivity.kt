@@ -10,18 +10,13 @@ import android.os.Bundle
 import android.os.Message
 import android.util.Log
 import android.view.View
-import android.webkit.CookieManager
-import android.webkit.RenderProcessGoneDetail
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
 import android.widget.Toast
-import kotlinx.android.synthetic.main.activity_main.customViewContainer
-import kotlinx.android.synthetic.main.activity_main.loadingView
-import kotlinx.android.synthetic.main.activity_main.refresh_container
-import kotlinx.android.synthetic.main.activity_main.webView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
 
 class TickarooWebEmbedDemoActivity : Activity() {
   private var customViewCallback: WebChromeClient.CustomViewCallback? = null
@@ -32,7 +27,6 @@ class TickarooWebEmbedDemoActivity : Activity() {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_main)
     CookieManager.getInstance().setAcceptCookie(true)
-    CookieManager.setAcceptFileSchemeCookies(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
     webView.settings.run {
       javaScriptEnabled = true
@@ -55,9 +49,16 @@ class TickarooWebEmbedDemoActivity : Activity() {
   override fun onResume() {
     super.onResume()
     if (webView.url.isNullOrEmpty()) {
-      webView.loadUrl(getString(R.string.url))
-    } else {
-      webView.loadUrl("javascript:window.location.reload( true )")
+      webView.loadDataWithBaseURL(
+        "http://www.tickaroo.com/",
+        getString(
+          R.string.tickaroo_ticker_embed,
+          getString(R.string.clientId),
+          getString(R.string.liveblogId),
+          getString(R.string.themeId),
+        ), "text/html",
+        "UTF-8", null
+      )
     }
   }
 
@@ -77,13 +78,12 @@ class TickarooWebEmbedDemoActivity : Activity() {
       customViewCallback = callback
       customViewContainer.addView(view)
       customViewContainer.visibility = View.VISIBLE
-      window?.decorView?.systemUiVisibility =
-        View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-            View.SYSTEM_UI_FLAG_FULLSCREEN or
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+
+      WindowCompat.setDecorFitsSystemWindows(window, false)
+      WindowInsetsControllerCompat(window, customViewContainer).let { controller ->
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+      }
     }
 
     override fun onShowCustomView(view: View?, requestedOrientation: Int, callback: CustomViewCallback?) {
@@ -91,7 +91,8 @@ class TickarooWebEmbedDemoActivity : Activity() {
     }
 
     override fun onHideCustomView() {
-      window?.decorView?.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+      WindowCompat.setDecorFitsSystemWindows(window, true)
+      WindowInsetsControllerCompat(window, customViewContainer).show(WindowInsetsCompat.Type.systemBars())
 
       if (customViewContainer.childCount == 0) {
         return
@@ -112,10 +113,7 @@ class TickarooWebEmbedDemoActivity : Activity() {
 
   inner class MainWebViewClient : WebViewClient() {
     override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = when {
-      url.toLowerCase().startsWith("intent") -> {
-        true
-      }
-      url.toLowerCase().startsWith("mailto://") -> {
+      url.lowercase(Locale.getDefault()).startsWith("mailto://") -> {
         startActivity(Intent(Intent.ACTION_SENDTO).apply {
           data = Uri.parse(url)
         })
@@ -125,9 +123,7 @@ class TickarooWebEmbedDemoActivity : Activity() {
     }
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-      if (request.url.scheme?.toLowerCase() == "intent") {
-        return true
-      } else if (request.url.scheme?.toLowerCase() == "mailto") {
+      if (request.url.scheme?.lowercase(Locale.getDefault()) == "mailto") {
         startActivity(Intent(Intent.ACTION_SENDTO).apply {
           data = request.url
         })
@@ -155,7 +151,9 @@ class TickarooWebEmbedDemoActivity : Activity() {
     }
 
     override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
-      refresh_container.visibility = View.VISIBLE
+      if (request?.isForMainFrame == true) {
+        refresh_container.visibility = View.VISIBLE
+      }
       if (VERSION.SDK_INT >= VERSION_CODES.M) {
         Log.d("TickarooWebEmbed", "error: ${error?.errorCode}, ${error?.description}")
       }
