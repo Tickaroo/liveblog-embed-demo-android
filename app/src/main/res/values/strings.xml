@@ -6,7 +6,6 @@
   <html>
       <head>
       <title>TestTicker</title>
-      <link rel=\'stylesheet\' href=\'%1$s\'>
       <meta name=\'viewport\' content=\'width=device-width, initial-scale=1\'>
     </head>
 
@@ -18,6 +17,7 @@
   ]]></string>
 
   <string name="clientId">5d2d9526560ace9935c7218a</string>
-  <string name="liveblogId">61af2beb195f96a80e822ebe</string>
+  <string name="liveblogId">62fe403f7fcc1170ab0151fd</string>
   <string name="themeId">lct_61f12ab11a60d256c0e5fed3</string>
+  <string name="liveblogUrl">https://cdn.tickaroo.com/embed/v4/fullpage/5d2d9526560ace9935c7218a/fplcdmSnavvg2UFnmSjh14pQ5JrVhc.html</string>
 </resources>

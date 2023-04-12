@@ -1,0 +1,64 @@
+package com.tickaroo.webdemo
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.util.Log
+import android.webkit.*
+import kotlinx.android.synthetic.main.activity_main.*
+import java.util.*
+
+class LiveblogWebViewClient(
+  private val startIntentCallback: (Intent) -> Unit,
+  private val pageFinishedCallback: () -> Unit,
+  private val errorCallback: () -> Unit,
+) : WebViewClient() {
+  @Deprecated("Deprecated in Java")
+  override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = when {
+    url.lowercase(Locale.getDefault()).startsWith("mailto:") -> {
+      startIntentCallback(Intent(Intent.ACTION_SENDTO).apply {
+        data = Uri.parse(url)
+      })
+      true
+    }
+    else -> {
+      startIntentCallback(Intent(Intent.ACTION_VIEW).apply {
+        data = Uri.parse(url)
+      })
+      true
+    }
+  }
+
+  override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
+    if (request.url.scheme?.lowercase(Locale.getDefault()) == "mailto") {
+      startIntentCallback(Intent(Intent.ACTION_SENDTO).apply {
+        data = request.url
+      })
+      true
+    } else {
+      startIntentCallback(Intent(Intent.ACTION_VIEW).apply {
+        data = request.url
+      })
+      true
+    }
+
+  override fun onPageFinished(view: WebView?, url: String) {
+    super.onPageFinished(view, url)
+    pageFinishedCallback()
+  }
+
+  @Deprecated("Deprecated in Java")
+  override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+    Log.d("TickarooWebEmbed", "error: $errorCode, $description")
+    errorCallback()
+  }
+
+  override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      Log.d("TickarooWebEmbed", "error: ${error?.errorCode}, ${error?.description}")
+    }
+    if (request?.isForMainFrame == true) {
+      errorCallback
+    }
+  }
+}

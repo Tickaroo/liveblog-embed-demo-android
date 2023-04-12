@@ -1,63 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     >
 
-  <WebView
-      android:id="@+id/webView"
+  <androidx.viewpager.widget.ViewPager
+      android:id="@+id/viewPager"
       android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:visibility="invisible"
+      android:layout_height="0dp"
+      android:layout_weight="1"
       />
 
-  <androidx.core.widget.ContentLoadingProgressBar
-      android:id="@+id/loadingView"
-      android:layout_width="40dp"
-      android:layout_height="40dp"
-      android:layout_gravity="center"
-      android:indeterminate="true"
-      android:theme="@style/ThemeOverlay.AppCompat.Light"
-      style="?android:attr/progressBarStyle"
+  <com.google.android.material.bottomnavigation.BottomNavigationView
+      android:id="@+id/bottomNavigation"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:background="?android:windowBackground"
+      app:menu="@menu/bottom_navigation_menu"
       />
 
-  <FrameLayout
-      android:id="@+id/customViewContainer"
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:visibility="invisible"
-      />
-
-  <LinearLayout
-      android:id="@+id/refresh_container"
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      android:background="#FFFFFF"
-      android:gravity="center"
-      android:orientation="vertical"
-      android:paddingBottom="50dp"
-      android:visibility="gone"
-      tools:visibility="visible"
-      >
-
-    <androidx.appcompat.widget.AppCompatImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:src="@drawable/refresh"
-        />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="20dp"
-        android:layout_marginStart="20dp"
-        android:gravity="center"
-        android:text="@string/error_text"
-        android:textSize="16sp"
-        />
-
-  </LinearLayout>
-
-</FrameLayout>
+</LinearLayout>
