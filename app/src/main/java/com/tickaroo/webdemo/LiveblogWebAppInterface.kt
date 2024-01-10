@@ -6,11 +6,19 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.webkit.JavascriptInterface
 
-class LiveblogWebAppInterface(private val context: Context) {
+class LiveblogWebAppInterface(
+  private val context: Context,
+  private val scrollCallback: (Int) -> Unit,
+) {
   @JavascriptInterface
   fun copyToClipboard(text: String?) {
     val clipboard = context.getSystemService(Activity.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText("Liveblog Sharing", text)
     clipboard.setPrimaryClip(clip)
+  }
+
+  @JavascriptInterface
+  fun tickarooLiveblogScrollTo(position: Int) {
+    scrollCallback(position)
   }
 }

@@ -2,7 +2,9 @@ package com.tickaroo.webdemo.fragments
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -98,7 +100,26 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
 
     init {
       webView.layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
-      webView.setupLiveblogWebView()
+      webView.setupLiveblogWebView(
+        pageStartedCallback = this::registerScrollCallback,
+        pageFinishedCallback = this::registerScrollCallback,
+        scrollCallback = { position ->
+          (webView.parent as? RecyclerView)?.let { recyclerView ->
+            val offsetViewBounds = Rect()
+            webView.getDrawingRect(offsetViewBounds)
+            recyclerView.offsetDescendantRectToMyCoords(webView, offsetViewBounds)
+            val offsetTop = offsetViewBounds.top
+
+            val positionInDp =
+              TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, position.toFloat(), webView.context.resources.displayMetrics)
+                .toInt()
+            val scrollBy = offsetTop + positionInDp
+            webView.post {
+              recyclerView.smoothScrollBy(0, scrollBy)
+            }
+          }
+        }
+      )
 
       // don’t scroll up on first tap
       webView.isFocusable = false
@@ -107,6 +128,10 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
 
     fun loadUrl(url: String) {
       webView.loadUrl(url)
+    }
+
+    private fun registerScrollCallback() {
+      webView.evaluateJavascript("window.tickarooLiveblogScrollTo = function(pos) { tik4Android.tickarooLiveblogScrollTo(pos) }", null)
     }
   }
 }

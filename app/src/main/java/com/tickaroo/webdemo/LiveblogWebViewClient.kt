@@ -1,6 +1,7 @@
 package com.tickaroo.webdemo
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.util.Log
@@ -12,6 +13,7 @@ import java.util.Locale
 
 class LiveblogWebViewClient(
   private val startIntentCallback: (Intent) -> Unit,
+  private val pageStartedCallback: () -> Unit,
   private val pageFinishedCallback: () -> Unit,
   private val errorCallback: () -> Unit,
 ) : WebViewClient() {
@@ -43,6 +45,11 @@ class LiveblogWebViewClient(
       })
       true
     }
+
+  override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+    super.onPageStarted(view, url, favicon)
+    pageStartedCallback()
+  }
 
   override fun onPageFinished(view: WebView?, url: String) {
     super.onPageFinished(view, url)
