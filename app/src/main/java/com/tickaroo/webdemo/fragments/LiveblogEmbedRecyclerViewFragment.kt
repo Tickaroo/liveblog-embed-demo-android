@@ -16,28 +16,32 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.tickaroo.webdemo.R
+import com.tickaroo.webdemo.databinding.FragmentLiveblogRecyclerviewBinding
 import com.tickaroo.webdemo.setupLiveblogWebView
-import kotlinx.android.synthetic.main.fragment_liveblog.*
-import kotlinx.android.synthetic.main.fragment_liveblog_recyclerview.*
 
 class LiveblogEmbedRecyclerViewFragment : Fragment() {
-  override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-    inflater.inflate(R.layout.fragment_liveblog_recyclerview, container, false)
+  private var binding: FragmentLiveblogRecyclerviewBinding? = null
+  override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    binding = FragmentLiveblogRecyclerviewBinding.inflate(inflater, container, false)
+    return binding!!.root
+  }
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
 
     val adapter = LiveblogEmbedAdapter()
-    liveblogRecyclerView.layoutManager = LinearLayoutManager(view.context)
-    liveblogRecyclerView.adapter = adapter
-    adapter.data = listOfNotNull(
-      UiBox(Color.GREEN),
-      UiBox(Color.YELLOW),
-      UiLiveBlog(liveblogUrl = getString(R.string.liveblogUrl)),
-      UiBox(Color.RED),
-      UiBox(Color.MAGENTA),
-      UiBox(Color.CYAN),
-    )
+    binding?.apply {
+      liveblogRecyclerView.layoutManager = LinearLayoutManager(view.context)
+      liveblogRecyclerView.adapter = adapter
+      adapter.data = listOfNotNull(
+        UiBox(Color.GREEN),
+        UiBox(Color.YELLOW),
+        UiLiveBlog(liveblogUrl = getString(R.string.liveblogUrl)),
+        UiBox(Color.RED),
+        UiBox(Color.MAGENTA),
+        UiBox(Color.CYAN),
+      )
+    }
   }
 
   sealed interface IUiScreenItem

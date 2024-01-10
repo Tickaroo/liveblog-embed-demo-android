@@ -4,9 +4,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.util.Log
-import android.webkit.*
-import kotlinx.android.synthetic.main.activity_main.*
-import java.util.*
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import java.util.Locale
 
 class LiveblogWebViewClient(
   private val startIntentCallback: (Intent) -> Unit,

@@ -5,8 +5,6 @@ import android.app.Activity
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebView
-import kotlinx.android.synthetic.main.fragment_liveblog.*
-import kotlinx.android.synthetic.main.fragment_liveblog.view.*
 
 @SuppressLint("SetJavaScriptEnabled")
 fun WebView.setupLiveblogWebView(

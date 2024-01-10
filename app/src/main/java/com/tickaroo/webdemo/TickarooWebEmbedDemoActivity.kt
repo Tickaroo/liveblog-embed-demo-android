@@ -4,13 +4,13 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.webkit.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentPagerAdapter
-import androidx.viewpager.widget.ViewPager.SimpleOnPageChangeListener
+import androidx.fragment.app.FragmentActivity
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
+import com.tickaroo.webdemo.databinding.ActivityMainBinding
 import com.tickaroo.webdemo.fragments.LiveblogEmbedCodeFragment
 import com.tickaroo.webdemo.fragments.LiveblogEmbedRecyclerViewFragment
 import com.tickaroo.webdemo.fragments.LiveblogEmbedUrlFragment
-import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
 
@@ -18,42 +18,42 @@ class TickarooWebEmbedDemoActivity : AppCompatActivity() {
   @SuppressLint("SetJavaScriptEnabled")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_main)
-    viewPager.offscreenPageLimit = 2
-    val adapter = EmbedDemoAdapter(supportFragmentManager)
-    viewPager.adapter = adapter
-    viewPager.addOnPageChangeListener(object : SimpleOnPageChangeListener() {
+    val binding = ActivityMainBinding.inflate(layoutInflater)
+    setContentView(binding.root)
+
+    // Create all Fragments at once to prevent jumping in RecyclerView
+    binding.viewPager.offscreenPageLimit = 2
+
+    val adapter = EmbedDemoAdapter(activity = this)
+    binding.viewPager.adapter = adapter
+    binding.viewPager.registerOnPageChangeCallback(object : OnPageChangeCallback() {
       override fun onPageSelected(position: Int) {
         when (position) {
-          0 -> bottomNavigation.menu.findItem(R.id.menu_liveblog_embed_url).isChecked = true
-          1 -> bottomNavigation.menu.findItem(R.id.menu_liveblog_embed_code).isChecked = true
-          2 -> bottomNavigation.menu.findItem(R.id.menu_liveblog_rv).isChecked = true
+          0 -> binding.bottomNavigation.menu.findItem(R.id.menu_liveblog_embed_url).isChecked = true
+          1 -> binding.bottomNavigation.menu.findItem(R.id.menu_liveblog_embed_code).isChecked = true
+          2 -> binding.bottomNavigation.menu.findItem(R.id.menu_liveblog_rv).isChecked = true
         }
       }
 
     })
 
-    bottomNavigation.setOnItemSelectedListener { item ->
+    binding.bottomNavigation.setOnItemSelectedListener { item ->
       when (item.itemId) {
-        R.id.menu_liveblog_embed_url -> viewPager.currentItem = 0
-        R.id.menu_liveblog_embed_code -> viewPager.currentItem = 1
-        R.id.menu_liveblog_rv -> viewPager.currentItem = 2
+        R.id.menu_liveblog_embed_url -> binding.viewPager.currentItem = 0
+        R.id.menu_liveblog_embed_code -> binding.viewPager.currentItem = 1
+        R.id.menu_liveblog_rv -> binding.viewPager.currentItem = 2
       }
       true
     }
   }
 
-  inner class EmbedDemoAdapter(fragmentManager: FragmentManager) : FragmentPagerAdapter(fragmentManager) {
-    private val urlFragment = LiveblogEmbedUrlFragment()
-    private val codeFragment = LiveblogEmbedCodeFragment()
-    private val rvFragment = LiveblogEmbedRecyclerViewFragment()
+  class EmbedDemoAdapter(activity: FragmentActivity) : FragmentStateAdapter(activity) {
+    override fun getItemCount(): Int = 3
 
-    override fun getCount(): Int = 3
-
-    override fun getItem(position: Int) = when (position) {
-      0 -> urlFragment
-      1 -> codeFragment
-      else -> rvFragment
+    override fun createFragment(position: Int) = when (position) {
+      0 -> LiveblogEmbedUrlFragment()
+      1 -> LiveblogEmbedCodeFragment()
+      else -> LiveblogEmbedRecyclerViewFragment()
     }
 
   }
