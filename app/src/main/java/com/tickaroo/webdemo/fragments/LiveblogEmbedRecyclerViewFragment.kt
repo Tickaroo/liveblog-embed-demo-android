@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -124,6 +125,9 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
   ) : ViewHolder(webView) {
     private var jumpId: Int? = null
     private var dragCountAtJump = 0
+    private var pendingTop: Double? = null
+    private var pendingUntil = 0L
+    private var aimedWebViewTop: Int? = null
 
     init {
       webView.layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
@@ -135,6 +139,12 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
         }
       )
 
+      // The page reports a new top before this row has grown to the new content height, so near the end of the list
+      // a scroll can run out of room. It is finished once the row has its new height.
+      webView.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+        if (bottom - top != oldBottom - oldTop) webView.post { settle() }
+      }
+
       // don’t scroll up on first tap
       webView.isFocusable = false
       webView.isFocusableInTouchMode = false
@@ -145,7 +155,8 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
     }
 
     private fun scrollToPost(top: Double, correction: Boolean, jumpId: Int) {
-      // The embed skips the jump call when the post is already in place, so a correction can be the first call of its jump.
+      // The embed sends the jump call before any correction, so a correction of an unknown jumpId means this view missed
+      // that call; it is taken as the jump.
       if (!correction || jumpId != this.jumpId) {
         this.jumpId = jumpId
         dragCountAtJump = dragCounter.count
@@ -153,7 +164,22 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
         Log.d("TickarooWebEmbed", "dropped correction of jumpId=$jumpId after a drag")
         return
       }
-      val recyclerView = webView.parent as? RecyclerView ?: return
+      pendingTop = top
+      pendingUntil = SystemClock.uptimeMillis() + HOLD_MS
+      scrollTo(top, correction)
+    }
+
+    private fun settle() {
+      val top = pendingTop ?: return
+      if (dragCounter.count != dragCountAtJump || SystemClock.uptimeMillis() > pendingUntil) {
+        pendingTop = null
+        return
+      }
+      if (scrollTo(top, correction = true) == 0) pendingTop = null
+    }
+
+    private fun scrollTo(top: Double, correction: Boolean): Int {
+      val recyclerView = webView.parent as? RecyclerView ?: return 0
 
       val offsetViewBounds = Rect()
       webView.getDrawingRect(offsetViewBounds)
@@ -167,12 +193,19 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
       val scrollBy = (offset + requested).coerceIn(0, maxOf(maxOffset, 0)) - offset
       if (scrollBy != requested) Log.d("TickarooWebEmbed", "clamped scroll of jumpId=$jumpId from $requested to $scrollBy")
 
+      // Re-aiming restarts the smooth scroll's easing, so a scroll already heading for this position is left alone.
+      val settling = recyclerView.scrollState == RecyclerView.SCROLL_STATE_SETTLING
+      val aim = offsetViewBounds.top - scrollBy
+      if (settling && aim == aimedWebViewTop) return scrollBy
+      aimedWebViewTop = aim
+
       // Once the jump has landed, an instant scroll keeps the post still while content above it grows.
       if (correction && recyclerView.scrollState == RecyclerView.SCROLL_STATE_IDLE) {
         recyclerView.scrollBy(0, scrollBy)
       } else {
         recyclerView.smoothScrollBy(0, scrollBy)
       }
+      return scrollBy
     }
 
     // Fixed arity: the JS bridge matches methods by argument count, and the embed passes info only to a function declaring two parameters.
@@ -181,6 +214,11 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
         "window.tickarooLiveblogScrollTo = function(top, info) { tik4Android.tickarooLiveblogScrollTo(top, !!(info && info.correction), info ? info.jumpId : 0) }",
         null,
       )
+    }
+
+    companion object {
+      // The embed sends corrections for at most 10 s after the jump.
+      private const val HOLD_MS = 10_000L
     }
   }
 }
