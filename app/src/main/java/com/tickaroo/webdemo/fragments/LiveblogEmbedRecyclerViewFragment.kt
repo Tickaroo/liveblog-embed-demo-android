@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.tickaroo.webdemo.R
 import com.tickaroo.webdemo.databinding.FragmentLiveblogRecyclerviewBinding
 import com.tickaroo.webdemo.setupLiveblogWebView
+import kotlin.math.roundToInt
 
 class LiveblogEmbedRecyclerViewFragment : Fragment() {
   private var binding: FragmentLiveblogRecyclerviewBinding? = null
@@ -56,16 +58,26 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
       private const val VIEW_TYPE_LIVEBLOG = 1
     }
 
+    private val dragCounter = DragCounter()
+
     var data: List<IUiScreenItem> = emptyList()
       set(value) {
         field = value
         notifyDataSetChanged()
       }
 
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+      recyclerView.addOnScrollListener(dragCounter)
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+      recyclerView.removeOnScrollListener(dragCounter)
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
       when (viewType) {
         VIEW_TYPE_BOX -> BoxViewHolder(view = View(parent.context))
-        VIEW_TYPE_LIVEBLOG -> LiveblogViewHolder(webView = WebView(parent.context))
+        VIEW_TYPE_LIVEBLOG -> LiveblogViewHolder(webView = WebView(parent.context), dragCounter = dragCounter)
         else -> throw IllegalArgumentException("wrong viewType $viewType")
       }
 
@@ -87,6 +99,16 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
       }
   }
 
+  // smoothScrollBy reports SETTLING, so DRAGGING only ever comes from the reader's own touch.
+  class DragCounter : RecyclerView.OnScrollListener() {
+    var count = 0
+      private set
+
+    override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+      if (newState == RecyclerView.SCROLL_STATE_DRAGGING) count++
+    }
+  }
+
   class BoxViewHolder(view: View) : ViewHolder(view) {
     init {
       view.layoutParams = MarginLayoutParams(MATCH_PARENT, 400).apply {
@@ -96,28 +118,20 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
   }
 
   @SuppressLint("SetJavaScriptEnabled")
-  class LiveblogViewHolder(private val webView: WebView) : ViewHolder(webView) {
+  class LiveblogViewHolder(
+    private val webView: WebView,
+    private val dragCounter: DragCounter,
+  ) : ViewHolder(webView) {
+    private var jumpId: Int? = null
+    private var dragCountAtJump = 0
 
     init {
       webView.layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
       webView.setupLiveblogWebView(
         pageStartedCallback = this::registerScrollCallback,
         pageFinishedCallback = this::registerScrollCallback,
-        scrollCallback = { position ->
-          (webView.parent as? RecyclerView)?.let { recyclerView ->
-            val offsetViewBounds = Rect()
-            webView.getDrawingRect(offsetViewBounds)
-            recyclerView.offsetDescendantRectToMyCoords(webView, offsetViewBounds)
-            val offsetTop = offsetViewBounds.top
-
-            val positionInDp =
-              TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, position.toFloat(), webView.context.resources.displayMetrics)
-                .toInt()
-            val scrollBy = offsetTop + positionInDp
-            webView.post {
-              recyclerView.smoothScrollBy(0, scrollBy)
-            }
-          }
+        scrollCallback = { top, correction, jumpId ->
+          webView.post { scrollToPost(top, correction, jumpId) }
         }
       )
 
@@ -130,8 +144,43 @@ class LiveblogEmbedRecyclerViewFragment : Fragment() {
       webView.loadUrl(url)
     }
 
+    private fun scrollToPost(top: Double, correction: Boolean, jumpId: Int) {
+      // The embed skips the jump call when the post is already in place, so a correction can be the first call of its jump.
+      if (!correction || jumpId != this.jumpId) {
+        this.jumpId = jumpId
+        dragCountAtJump = dragCounter.count
+      } else if (dragCounter.count != dragCountAtJump) {
+        Log.d("TickarooWebEmbed", "dropped correction of jumpId=$jumpId after a drag")
+        return
+      }
+      val recyclerView = webView.parent as? RecyclerView ?: return
+
+      val offsetViewBounds = Rect()
+      webView.getDrawingRect(offsetViewBounds)
+      recyclerView.offsetDescendantRectToMyCoords(webView, offsetViewBounds)
+      val topInPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, top.toFloat(), webView.context.resources.displayMetrics)
+      val requested = offsetViewBounds.top + topInPx.roundToInt()
+
+      // LinearLayoutManager estimates these from the visible rows; they are exact once the first or last row is visible.
+      val offset = recyclerView.computeVerticalScrollOffset()
+      val maxOffset = recyclerView.computeVerticalScrollRange() - recyclerView.computeVerticalScrollExtent()
+      val scrollBy = (offset + requested).coerceIn(0, maxOf(maxOffset, 0)) - offset
+      if (scrollBy != requested) Log.d("TickarooWebEmbed", "clamped scroll of jumpId=$jumpId from $requested to $scrollBy")
+
+      // Once the jump has landed, an instant scroll keeps the post still while content above it grows.
+      if (correction && recyclerView.scrollState == RecyclerView.SCROLL_STATE_IDLE) {
+        recyclerView.scrollBy(0, scrollBy)
+      } else {
+        recyclerView.smoothScrollBy(0, scrollBy)
+      }
+    }
+
+    // Fixed arity: the JS bridge matches methods by argument count, and the embed passes info only to a function declaring two parameters.
     private fun registerScrollCallback() {
-      webView.evaluateJavascript("window.tickarooLiveblogScrollTo = function(pos) { tik4Android.tickarooLiveblogScrollTo(pos) }", null)
+      webView.evaluateJavascript(
+        "window.tickarooLiveblogScrollTo = function(top, info) { tik4Android.tickarooLiveblogScrollTo(top, !!(info && info.correction), info ? info.jumpId : 0) }",
+        null,
+      )
     }
   }
 }
