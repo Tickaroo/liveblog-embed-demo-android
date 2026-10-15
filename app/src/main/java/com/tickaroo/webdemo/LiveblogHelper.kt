@@ -11,7 +11,7 @@ fun WebView.setupLiveblogWebView(
   refreshContainer: View? = null,
   pageStartedCallback: () -> Unit = {},
   pageFinishedCallback: () -> Unit = {},
-  scrollCallback: (Int) -> Unit = {},
+  scrollCallback: (top: Double, correction: Boolean, jumpId: Int) -> Unit = { _, _, _ -> },
 ) {
   settings.run {
     javaScriptEnabled = true
